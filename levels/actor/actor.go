@@ -169,7 +169,7 @@ embedded_components {
   "  w: 0.0\n"
   "}\n"
   "scale {\n"
-  "  x: 2.0\n"
+  "  x: 0.0\n"
   "  y: 2.0\n"
   "  z: 1.0\n"
   "  w: 0.0\n"

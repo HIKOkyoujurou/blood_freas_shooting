@@ -4,7 +4,7 @@ local shot_damage = 8
 local dash_cost = 10
 local die_splash = 20
 local heal_limit = 12
-local splash_size_gain = 8
+local splash_size_gain = 10.5
 local map_size = 256*5
 go.property("control_script", hash("test"))
 go.property("size", 128)
@@ -16,6 +16,8 @@ end
 
 function init(self)
 	msg.post("/ui#level","msg_init_map_position")
+	msg.post("/level_manager#manager","msg_send_actor_id")
+
 
 	self.player = false
 
@@ -73,6 +75,7 @@ function die_motion(self)
 
 	splashes(4,self,die_splash,die_splash,-vec)
 	print("actor die")
+	msg.post("/level_manager#manager","msg_actor_die")
 	go.delete(".",true)
 
 end
@@ -187,8 +190,6 @@ function shot_normal(self)
 			local pos = pos_out_of_body(self,vec)
 			local this_id = go.get_id()
 
-			print("-- when shot id --")
-			print(this_id)
 			local prop = {color = self.color,dir = vec,id = this_id}
 
 			factory.create("#shot_factory", pos, nil, prop)
@@ -243,8 +244,6 @@ end
 --splashes
 
 function splashes(num,self,size,power,dir)
-	print("----- splashes "..num)
-	print(dir)
 	local n = math.rad(num)
 	local size_tbl = {}
 	local normal_amount = size/(num+1)
@@ -276,7 +275,7 @@ function splashes(num,self,size,power,dir)
 		make_splash(self,size_tbl[i],power,dir_temp)
 	end
 
-	print(dir)
+	-- print(dir)
 
 end
 
@@ -359,7 +358,7 @@ function update(self, dt)
 				-- print(heal_limit.." :"..self.size)
 			end
 		else
-			die_motion(self)
+			-- die_motion(self)
 		end
 	end
 
@@ -409,11 +408,16 @@ local rotation_msg = hash("rotation_msg")
 local shot_msg = hash("shot_msg")
 local dash_msg = hash("dash_msg")
 local move_target = hash("move_target")
+local msg_delete_itself = hash("msg_delete_itself")
 
 function on_message(self, message_id, message, sender)
 	if message_id == hash("msg_controler_init") then
 		self.control_script = sender
 		self.player = message.player
+	elseif message_id == msg_delete_itself then
+		print("delete     itself")
+		msg.post(self.control_script,"msg_delete_control_script")
+		go.delete(".")
 	elseif message_id == move_msg then
 		self.dir = message.vec
 		self.spd = message.spd

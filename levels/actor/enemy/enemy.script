@@ -13,6 +13,7 @@ function init(self)
 	self.aim_vec = self.dir--vmath.vector3(1,0,0)
 	self.aim_time = 0 
 	self.aim_cool_time = 0.8
+	self.restart = false
 
 	msg.post(self.id,"msg_controler_init",{player = false})
 
@@ -22,7 +23,9 @@ function color_set()
 end
 
 function final(self)
-	msg.post("/level_manager#manager", "msg_enemy_death")
+	if not self.restart then
+		msg.post("/level_manager#manager", "msg_enemy_death")
+	end
 end
 
 function set_aim_pos(self,vec)
@@ -75,11 +78,15 @@ local function collide_limit(self)
 end
 
 local msg_collide_limit = hash("msg_collide_limit")
+local msg_delete_control_script = hash("msg_delete_control_script")
 function on_message(self, message_id, message, sender)
 	if message_id ==  hash("collision_response") then
 		if message.other_group == hash("actor") then
 			msg.post(message.other_id, "msg_get_view")
 		end
+	elseif message_id ==  msg_delete_control_script then
+		self.restart = true
+		go.delete(".")
 	elseif message_id ==  hash("msg_view_return") then
 		if message.player then
 			get_player_pos(self,message.pos,message.size)

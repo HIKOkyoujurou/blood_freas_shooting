@@ -1,6 +1,8 @@
+local monarch = require "monarch.monarch"
 function init(self)
 	print("test")
-	msg.post("/level#screen_proxy","show")
+
+	msg.post("/title#screen_proxy","show")
 end
 
 function final(self)
@@ -15,22 +17,35 @@ function update(self, dt)
 	-- Remove this function if not needed
 end
 
+local msg_game_start = hash("msg_game_start")
+local msg_back_title = hash("msg_back_title")
+
+local msg_pause = hash("msg_pause")
+local msg_restart = hash("msg_restart")
+
 function on_message(self, message_id, message, sender)
-	-- Add message-handling code here
-	-- Learn more: https://defold.com/manuals/message-passing/
-	-- Remove this function if not needed
+	if message_id == msg_pause then
+		print("msg_pause")
+		msg.post("/pause_menu#screen_proxy","show")
+
+
+	elseif message_id == msg_restart then
+		print("restart msg")
+		msg.post("/pause_menu#screen_proxy","back")
+	elseif message_id == msg_back_title then
+		msg.post("/title#screen_proxy","show")
+		print("back_title")
+		-- monarch.show("/title#screen_proxy",true)
+	-- msg.post(receiver, message_id, [message])
+	elseif message_id == msg_game_start then
+		print("start message")
+		msg.post("/level#screen_proxy","show")
+
+	end
 end
 
 function on_input(self, action_id, action)
-	-- Add input-handling code here. The game object this script is attached to
-	-- must have acquired input focus:
-	--
-	--    msg.post(".", "acquire_input_focus")
-	--
-	-- All mapped input bindings will be received. Mouse and touch input will
-	-- be received regardless of where on the screen it happened.
-	-- Learn more: https://defold.com/manuals/input/
-	-- Remove this function if not needed
+	
 end
 
 function on_reload(self)

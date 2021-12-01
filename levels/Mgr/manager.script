@@ -8,25 +8,36 @@ local player_pos = vmath.vector3()
 local vase_num = 0
 local vase_time = 0
 local vase_cool_time = 5
+local actor_ids_manager ={}
 
 function init(self)
 	-- collectionfactory.create()
 	-- make_enemy()
 	start_game()
-	change_phase()
 end
 
 function start_game()
+	delete_all_object()
 	now_level =1
 	enemy_death_count = 0
 	game_time = 0
 	collectionfactory.create("#player_factory",vmath.vector3(0,0,0))
+	msg.post("congrats#result", "msg_level_start")
+
+	change_phase()
 
 end
-break_point = {1,4,10}
+
+
+function end_game()
+	print("end game")
+	msg.post("congrats#result", "msg_level_done")
+end
+
+break_point = {1,4,9}
 enemy_num ={1,3,5}
 --vase
-function make_vase(pos)
+function make_vase(pos,id)
 	print(" - vase - ")
 	print(vase_num)
 	if vase_num < 2 and vase_time <= 0 then
@@ -35,11 +46,13 @@ function make_vase(pos)
 		-- local spawn_pos = vmath.vector3(pos_x,pos_y,0)
 		vase_num = vase_num +1
 		factory.create("#vase_factory",spawn_pos)
+		save_ids(id)
 	end
 end
 
-function delete_vase()
+function delete_vase(sender)
 	vase_num = vase_num -1
+	delete_ids(id)
 
 end
 
@@ -49,12 +62,9 @@ function make_enemy()
 	local pos_y = math.random(-map_size+256, map_size-256)
 	local pos = vmath.vector3(pos_x,pos_y,0)
 
-	collectionfactory.create("#enemy_factory",pos)
+	local id = collectionfactory.create("#enemy_factory",pos)
 end
 
-function end_game()
-	print("end_game")
-end
 
 function change_phase()
 	print("-- phase change --")
@@ -68,7 +78,7 @@ function change_phase()
 	end
 end
 
-function death_enemy()
+function death_enemy(sender)
 	enemy_death_count = enemy_death_count+1
 	if enemy_death_count >= break_point[now_level] then
 		now_level = now_level+1
@@ -91,7 +101,35 @@ function random_pos_avoid(pos)
 	return vmath.vector3(pos_x,pos_y,0)
 end
 
-function chenge_level()
+
+function delete_ids(id)
+	print("delete_id")
+
+	for i =1,#actor_ids_manager do
+		if id == actor_ids_manager[i] then
+			table.remove(actor_ids_manager, i)
+		end
+	end
+end
+
+function delete_all_object()
+	print("all delete")
+	for i =#actor_ids_manager,1,-1 do
+		msg.post(actor_ids_manager[i],"msg_delete_itself")
+		table.remove(actor_ids_manager,i)
+	end
+	actor_ids = {}
+	print(#actor_ids)
+end
+
+
+function save_ids(id)
+	print("save_ids")
+	table.insert(actor_ids_manager,id)
+end
+
+
+function pause_actors()
 
 end
 
@@ -100,7 +138,6 @@ function final(self)
 end
 
 function update(self, dt)
-	print(vase_time)
 	vase_time =math.max(vase_time-dt,0)
 	game_time =game_time+dt
 end
@@ -108,14 +145,26 @@ end
 local msg_player_need_help = hash("msg_player_need_help")
 local msg_vase_break = hash("msg_break_vase")
 local msg_enemy_death = hash("msg_enemy_death")
+local msg_pause_actors = hash("msg_pause_actors")
+local msg_send_actor_id =hash("msg_send_actor_id")
+local msg_actor_die =hash("msg_actor_die")
+local msg_init_game = hash("msg_init_game")
 
 function on_message(self, message_id, message, sender)
-	if message_id == msg_player_need_help then
+	if message_id == msg_send_actor_id then
+		save_ids(sender)
+	elseif message_id == msg_init_game then
+		start_game()
+	elseif message_id == msg_actor_die then
+		delete_ids(sender)
+	elseif message_id == msg_player_need_help then
 		make_vase(message.pos)
 	elseif message_id == msg_vase_break then
-		delete_vase()
+		delete_vase(sender)
 	elseif message_id == msg_enemy_death then
-		death_enemy()
+		death_enemy(sender)
+	elseif message_id == msg_pause_actors then
+		pause_actors()
 	end
 end
 

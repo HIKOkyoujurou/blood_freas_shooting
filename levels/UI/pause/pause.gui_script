@@ -1,0 +1,54 @@
+local gooey = require "gooey.gooey"
+
+function init(self)
+	msg.post(".", "acquire_input_focus")
+end
+
+function final(self)
+	msg.post(".", "release_input_focus")
+end
+
+function update(self, dt)
+	-- Add update code here
+	-- Learn more: https://defold.com/manuals/script/
+	-- Remove this function if not needed
+end
+
+function on_message(self, message_id, message, sender)
+	-- Add message-handling code here
+	-- Learn more: https://defold.com/manuals/message-passing/
+	-- Remove this function if not needed
+end
+
+function pressed_button_restart()
+	print("restart")
+	msg.post("main:/gameMgr#gameMgr","msg_restart")
+end
+
+
+function pressed_button_init()
+	print("init")
+	msg.post("level:/level_manager#manager","msg_init_game")
+	msg.post("main:/gameMgr#gameMgr","msg_restart")
+
+end
+
+function pressed_button_title()
+	msg.post("main:/gameMgr#gameMgr","msg_back_title")
+
+	print("title")
+end
+
+function on_input(self, action_id, action)
+	gooey.button("button_init", action_id, action, pressed_button_init, update_button)
+
+	gooey.button("button_restart", action_id, action, pressed_button_restart, update_button)
+	gooey.button("button_title", action_id, action, pressed_button_title, update_button)
+
+end
+
+function on_reload(self)
+	-- Add reload-handling code here
+	-- Learn more: https://defold.com/manuals/hot-reload/
+	-- Remove this function if not needed
+end

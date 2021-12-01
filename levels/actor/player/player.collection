@@ -1,4 +1,4 @@
-name: "default"
+name: "player"
 instances {
   id: "actor"
   prototype: "/levels/actor/actor.go"

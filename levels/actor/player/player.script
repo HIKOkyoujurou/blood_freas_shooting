@@ -11,7 +11,8 @@ function init(self)
 end
 
 function final(self)
-	msg.post("camera","unfollow")
+	-- msg.post("camera","unfollow")
+	msg.post("/level_manager#manager","player_death")
 end
 
 function update(self, dt)
@@ -37,11 +38,12 @@ function update(self, dt)
 	-- Learn more: https://defold.com/manuals/script/
 	-- Remove this function if not needed
 end
+local msg_delete_control_script = hash("msg_delete_control_script")
 
 function on_message(self, message_id, message, sender)
-	-- Add message-handling code here
-	-- Learn more: https://defold.com/manuals/message-passing/
-	-- Remove this function if not needed
+	if message_id ==  msg_delete_control_script then
+		go.delete(".")
+	end
 end
 
 function on_input(self, action_id, action)
@@ -56,7 +58,7 @@ function on_input(self, action_id, action)
 		self.input_dir.y = self.input_dir.y-1 
 	end
 
-	if action_id == hash("mouse_left") then
+	if action_id == hash("touch") then
 		msg.post("actor#actor","shot_msg")
 	elseif action_id == hash("mouse_right") then
 		msg.post("actor#actor","dash_msg")

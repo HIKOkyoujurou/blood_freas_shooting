@@ -2,7 +2,37 @@ local prefab_character = nil
 local prefab_vase = nil
 local ids = {}
 local vase_ids ={}
+
+local gooey = require "gooey.gooey"
+
+function update_button(button)
+	if button.pressed_now then
+		gui.play_flipbook(button.node, hash("button_push"))
+	elseif button.released_now then
+		gui.play_flipbook(button.node, hash("button_normal"))
+	elseif not button.pressed and button.over_now then
+		gui.play_flipbook(button.node, hash("button_hover"))
+	elseif not button.pressed and button.out_now then
+		gui.play_flipbook(button.node, hash("button_normal"))
+	end
+end
+
+local function pause_button_pressed()
+	print("pause")
+	-- msg.post("level/level_manager#manager","msg_pause_actors")
+
+	msg.post("main:/gameMgr#gameMgr","msg_pause")
+end
+
+function on_input(self, action_id, action)
+	-- print("input")
+	-- print(action_id)
+	gooey.button("pause_button", action_id, action, pause_button_pressed, update_button)
+end
+
 function init(self)
+	msg.post(".", "acquire_input_focus")
+
 	prefab_character = gui.get_node("actor_prefab")
 	prefab_vase = gui.get_node("vase_prefab")
 	self.ids = {}
@@ -84,17 +114,6 @@ function on_message(self, message_id, message, sender)
 	end
 end
 
-function on_input(self, action_id, action)
-	-- Add input-handling code here. The game object this script is attached to
-	-- must have acquired input focus:
-	--
-	--    msg.post(".", "acquire_input_focus")
-	--
-	-- All mapped input bindings will be received. Mouse and touch input will
-	-- be received regardless of where on the screen it happened.
-	-- Learn more: https://defold.com/manuals/input/
-	-- Remove this function if not needed
-end
 
 function on_reload(self)
 	-- Add reload-handling code here

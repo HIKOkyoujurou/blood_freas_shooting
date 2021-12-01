@@ -1,10 +1,13 @@
-local monarch = require "monarch.monarch"
+-- local monarch = require "monarch.monarch"
+local gooey = require "gooey.gooey"
+
 
 function init(self)
     msg.post(".", "acquire_input_focus")
 end
 
 function final(self)
+    msg.post(".", "release_input_focus")
 end
 
 function update(self, dt)
@@ -13,7 +16,27 @@ end
 function on_message(self, message_id, message, sender)
 end
 
+function update_button_title(button)
+	if button.pressed_now then
+		gui.play_flipbook(button.node, hash("button_push"))
+	elseif button.released_now then
+		gui.play_flipbook(button.node, hash("button_normal"))
+	elseif not button.pressed and button.over_now then
+		gui.play_flipbook(button.node, hash("button_hover"))
+	elseif not button.pressed and button.out_now then
+		gui.play_flipbook(button.node, hash("button_normal"))
+	end
+end
+
+function pressed_button_start()
+    print("start")
+	msg.post("main:/gameMgr#gameMgr","msg_game_start")
+
+end
+
 function on_input(self, action_id, action)
+	gooey.button("start_button", action_id, action, pressed_button_start, update_button_title)
+
 end
 
 function on_reload(self)
