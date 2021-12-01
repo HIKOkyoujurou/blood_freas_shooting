@@ -1,20 +1,94 @@
 local map_size = 1280
+
 local now_level =0
-local death_count = 0
+local enemy_death_count = 0
 local game_time = 0
+
+local player_pos = vmath.vector3()
+local vase_num = 0
+local vase_time = 0
+local vase_cool_time = 5
 
 function init(self)
 	-- collectionfactory.create()
-	make_enemy()
+	-- make_enemy()
+	start_game()
+	change_phase()
+end
+
+function start_game()
+	now_level =1
+	enemy_death_count = 0
+	game_time = 0
+	collectionfactory.create("#player_factory",vmath.vector3(0,0,0))
+
+end
+break_point = {1,4,10}
+enemy_num ={1,3,5}
+--vase
+function make_vase(pos)
+	print(" - vase - ")
+	print(vase_num)
+	if vase_num < 2 and vase_time <= 0 then
+		vase_time = vase_cool_time
+		local spawn_pos = random_pos_avoid(pos)
+		-- local spawn_pos = vmath.vector3(pos_x,pos_y,0)
+		vase_num = vase_num +1
+		factory.create("#vase_factory",spawn_pos)
+	end
+end
+
+function delete_vase()
+	vase_num = vase_num -1
 
 end
 
+--enemy
 function make_enemy()
 	local pos_x = math.random(-map_size+256, map_size-256)
 	local pos_y = math.random(-map_size+256, map_size-256)
 	local pos = vmath.vector3(pos_x,pos_y,0)
 
 	collectionfactory.create("#enemy_factory",pos)
+end
+
+function end_game()
+	print("end_game")
+end
+
+function change_phase()
+	print("-- phase change --")
+	print(now_level)
+	if now_level == 4 then
+		end_game()
+		return
+	end
+	for i =1,enemy_num[now_level] do
+		make_enemy()
+	end
+end
+
+function death_enemy()
+	enemy_death_count = enemy_death_count+1
+	if enemy_death_count >= break_point[now_level] then
+		now_level = now_level+1
+		change_phase()
+	end
+end
+
+function random_pos_avoid(pos)
+	pos_x = 0
+	pos_y = 0
+	while true do
+		pos_x = math.random(-map_size+256, map_size-256)
+		pos_y = math.random(-map_size+256, map_size-256)
+
+		if math.abs(pos_x - pos.x) >64 and math.abs(pos_y-pos.y) >64 then
+			break
+		end
+
+	end
+	return vmath.vector3(pos_x,pos_y,0)
 end
 
 function chenge_level()
@@ -26,11 +100,23 @@ function final(self)
 end
 
 function update(self, dt)
+	print(vase_time)
+	vase_time =math.max(vase_time-dt,0)
 	game_time =game_time+dt
 end
 
-function on_message(self, message_id, message, sender)
+local msg_player_need_help = hash("msg_player_need_help")
+local msg_vase_break = hash("msg_break_vase")
+local msg_enemy_death = hash("msg_enemy_death")
 
+function on_message(self, message_id, message, sender)
+	if message_id == msg_player_need_help then
+		make_vase(message.pos)
+	elseif message_id == msg_vase_break then
+		delete_vase()
+	elseif message_id == msg_enemy_death then
+		death_enemy()
+	end
 end
 
 function on_input(self, action_id, action)

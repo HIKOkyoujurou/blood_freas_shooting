@@ -3,14 +3,14 @@ local player_id = nil
 
 function init(self)
 	self.id = go.get_parent()
-	self.dir = vmath.vector3(1,0,0)
+	self.dir = vmath.vector3(math.random(),math.random(),0)
 	self.mode ="search"
 	self.move =true
 	self.rotation = 0
 
 	self.spd= 2--8
 	self.time = 1
-	self.aim_vec = vmath.vector3(1,0,0)
+	self.aim_vec = self.dir--vmath.vector3(1,0,0)
 	self.aim_time = 0 
 	self.aim_cool_time = 0.8
 
@@ -22,9 +22,7 @@ function color_set()
 end
 
 function final(self)
-	-- Add finalization code here
-	-- Learn more: https://defold.com/manuals/script/
-	-- Remove this function if not needed
+	msg.post("/level_manager#manager", "msg_enemy_death")
 end
 
 function set_aim_pos(self,vec)
@@ -37,12 +35,12 @@ function update(self, dt)
 	
 
 	if self.mode == "search" then
-		self.time = self.time -dt
-		if self.time<0 then
-			self.time=1
-			self.dir =-self.dir
-			--self.aim_vec = - self.aim_vec
-		end
+		-- self.time = self.time -dt
+		-- if self.time<0 then
+		-- 	self.time=1
+		-- 	self.dir =-self.dir
+		-- 	--self.aim_vec = - self.aim_vec
+		-- end
 	end
 
 	if self.move then
@@ -69,6 +67,14 @@ function update(self, dt)
 	end
 end
 
+local function collide_limit(self)
+	if self.mode == "search" then
+		self.aim_vec = -self.aim_vec
+		self.dir = -self.dir
+	end
+end
+
+local msg_collide_limit = hash("msg_collide_limit")
 function on_message(self, message_id, message, sender)
 	if message_id ==  hash("collision_response") then
 		if message.other_group == hash("actor") then
@@ -80,6 +86,8 @@ function on_message(self, message_id, message, sender)
 		end
 	elseif message_id ==  hash("msg_get_damage") then
 		set_aim_pos(self,message.vec)
+	elseif message_id == msg_collide_limit then
+		collide_limit(self)
 	end
 
 end
@@ -102,7 +110,6 @@ function get_player_pos(self,pos,size)
 		self.mode = "wait"
 	end
 
-	print("get_player_pos")
 end
 
 function dir_change(dir,rad)

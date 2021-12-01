@@ -56,14 +56,12 @@ function init(self)
 	-- self.aim_pos = vmath.vector3(0, 1, 0)
 
 	-- self.now_quat = vmath.quat_rotation_z(math.pi)
-
 end
 
 function init_color_set(self)
 	local col = vmath.vector4(math.random(),math.random(),math.random(),1)
 	self.color = col
-	print("color :")
-	print(col)
+
 
 end
 
@@ -82,7 +80,7 @@ end
 
 function color_change(self,col,size)
 	local time =0.5
-	size =size/splash_size_gain
+	size =size--/splash_size_gain
 
 	local new_col = (self.color*(self.size)+col*size)/(self.size+size)
 	
@@ -102,6 +100,9 @@ function size_change(self,num)
 	local sc = cost_to_scale(self.size)
 
 		if self.size <heal_limit then
+			if not self.need_heal then
+				msg.post("/level_manager#manager","msg_player_need_help",{pos=self.pos})
+			end
 			self.need_heal = true
 		else
 			self.need_heal = false
@@ -164,7 +165,7 @@ function cancel_consume(self,cost)
 		
 	else
 		self.need_heal = true
-		print("no chance!!!!!!!!!!!")
+		-- print("no chance!!!!!!!!!!!")
 	end
 
 
@@ -352,12 +353,10 @@ function update(self, dt)
 
 	if self.need_heal then
 		if self.player then
-			print("need heal")
-			print(self.no_action_time)
 			self.no_action_time = self.no_action_time +dt
 			if self.no_action_time > 1 then
 				size_change(self,0.5)
-				print(heal_limit.." :"..self.size)
+				-- print(heal_limit.." :"..self.size)
 			end
 		else
 			die_motion(self)

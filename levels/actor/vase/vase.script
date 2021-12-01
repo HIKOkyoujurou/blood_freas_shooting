@@ -4,10 +4,13 @@ local pow =40
 function init(self)
 	self.color =  vmath.vector4(math.random(),math.random(),math.random(),1)
 	sprite.set_constant("#sprite", "tint", self.color)
+	msg.post("/ui#level","msg_init_vase_position",{pos =go.get_position() ,color =self.color})
 end
 
 function final(self)
-	
+	msg.post("/ui#level","msg_end_vase_position")	
+	msg.post("/level_manager#manager","msg_break_vase")
+
 end
 
 function update(self, dt)

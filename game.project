@@ -14,6 +14,7 @@ input_method = HiddenInputField
 [project]
 title = blood_defold
 dependencies#0 = https://github.com/britzl/monarch/archive/master.zip
+dependencies#1 = https://github.com/britzl/gooey/archive/master.zip
 
 [physics]
 trigger_overlap_capacity = 32

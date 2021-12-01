@@ -29,7 +29,7 @@ function update(self, dt)
 
 	if self.camera_follow then
 		-- msg.post("camera","set_rotation",{rot = go.get_rotation(".")})
-		msg.post("camera","set_position",{pos = go.get_position("actor")})
+		msg.post("/camera","set_position",{pos = go.get_position("actor")})
 	end
 	
 
