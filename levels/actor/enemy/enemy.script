@@ -93,6 +93,7 @@ function on_message(self, message_id, message, sender)
 		end
 	elseif message_id ==  hash("msg_get_damage") then
 		set_aim_pos(self,message.vec)
+		self.dir = message.vec
 	elseif message_id == msg_collide_limit then
 		collide_limit(self)
 	end

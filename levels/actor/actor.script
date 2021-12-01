@@ -4,8 +4,8 @@ local shot_damage = 8
 local dash_cost = 10
 local die_splash = 20
 local heal_limit = 12
-local splash_size_gain = 10.5
-local map_size = 256*5
+local splash_size_gain = 11
+local map_size = 640
 go.property("control_script", hash("test"))
 go.property("size", 128)
 
@@ -15,7 +15,9 @@ function cost_to_scale(cost)
 end
 
 function init(self)
-	msg.post("/ui#level","msg_init_map_position")
+	if self.player then
+		msg.post("/ui#level","msg_init_map_position")
+	end
 	msg.post("/level_manager#manager","msg_send_actor_id")
 
 
@@ -47,6 +49,9 @@ function init(self)
 	self.dash_limit_time =0.1
 	self.dash_aim = vmath.vector3()
 
+	self.limit_sent_message=2
+	self.time_sent_message=self.limit_sent_message
+
 
 	-- self.color = vmath.vector4(1, 0, 0, 1)
 	init_color_set(self)
@@ -75,6 +80,7 @@ function die_motion(self)
 
 	splashes(4,self,die_splash,die_splash,-vec)
 	print("actor die")
+	
 	msg.post("/level_manager#manager","msg_actor_die")
 	go.delete(".",true)
 
@@ -138,6 +144,9 @@ end
 --get info
 function get_splash(self,size,col)
 	color_change(self,col,size)
+	if not self.player then
+		size =size*0.6
+	end
 	size_change(self,size)
 end
 
@@ -329,8 +338,9 @@ end
 
 function final(self)
 	print("actor final")
-	msg.post("/ui#level","msg_end_map_position")
-
+	if self.player then
+		msg.post("/ui#level","msg_end_map_position")
+	end
 end
 
 function collide_limit(self)
@@ -348,7 +358,17 @@ function update(self, dt)
 		self.pos.y = map_size *(self.pos.y/math.abs(self.pos.y))
 		collide_limit(self)
 	end
-	msg.post("/ui#level","msg_map_position",{pos = self.pos,color =self.color})
+
+	if self.player then
+		msg.post("/ui#level","msg_map_position",{pos = self.pos,color =self.color})
+
+		if self.time_sent_message <= 0 then
+			self.time_sent_message =self.limit_sent_message
+			msg.post("/level_manager#manager","msg_player_attention",{pos= self.pos})
+		else
+			self.time_sent_message = self.time_sent_message- dt
+		end
+	end
 
 	if self.need_heal then
 		if self.player then
@@ -402,7 +422,7 @@ function update(self, dt)
 	self.move = false
 end
 
-
+local msg_follow_player = hash("msg_follow_player")
 local move_msg = hash("move_msg")
 local rotation_msg = hash("rotation_msg")
 local shot_msg = hash("shot_msg")
@@ -414,6 +434,14 @@ function on_message(self, message_id, message, sender)
 	if message_id == hash("msg_controler_init") then
 		self.control_script = sender
 		self.player = message.player
+		
+	elseif message_id == msg_follow_player then
+		if not self.player then
+			print("follow player")
+			-- msg.post(self.control_script, , [message])
+			msg.post(self.control_script, "msg_view_return", {player = self.player,pos = go.get_position(),size =self.size})
+
+		end
 	elseif message_id == msg_delete_itself then
 		print("delete     itself")
 		msg.post(self.control_script,"msg_delete_control_script")
@@ -450,7 +478,13 @@ function on_message(self, message_id, message, sender)
 			if not self.damage then
 				-- local vec = go.get_position()-message.other_position
 				local vec = self.pos-message.other_position
-				damage_move(10,self,128,vmath.normalize(vec),0.5)
+				if self.dash then
+					damage_move(5,self,64,vmath.normalize(vec),0.2)
+
+				else
+					damage_move(10,self,128,vmath.normalize(vec),0.5)
+				
+				end
 			end
 		elseif message.other_group == hash("splash") then
 

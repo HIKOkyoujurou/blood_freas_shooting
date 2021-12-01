@@ -1,4 +1,4 @@
-local map_size = 1280
+local map_size = 640
 
 local now_level =0
 local enemy_death_count = 0
@@ -9,6 +9,7 @@ local vase_num = 0
 local vase_time = 0
 local vase_cool_time = 5
 local actor_ids_manager ={}
+local actor_ids_position ={}
 
 function init(self)
 	-- collectionfactory.create()
@@ -34,8 +35,8 @@ function end_game()
 	msg.post("congrats#result", "msg_level_done")
 end
 
-break_point = {1,4,9}
-enemy_num ={1,3,5}
+break_point = {1,3,6}
+enemy_num ={1,2,3}
 --vase
 function make_vase(pos,id)
 	print(" - vase - ")
@@ -69,7 +70,7 @@ end
 function change_phase()
 	print("-- phase change --")
 	print(now_level)
-	if now_level == 4 then
+	if now_level == #enemy_num+1 then
 		end_game()
 		return
 	end
@@ -108,6 +109,7 @@ function delete_ids(id)
 	for i =1,#actor_ids_manager do
 		if id == actor_ids_manager[i] then
 			table.remove(actor_ids_manager, i)
+			table.remove(actor_ids_position, i)
 		end
 	end
 end
@@ -117,6 +119,8 @@ function delete_all_object()
 	for i =#actor_ids_manager,1,-1 do
 		msg.post(actor_ids_manager[i],"msg_delete_itself")
 		table.remove(actor_ids_manager,i)
+		table.remove(actor_ids_position,i)
+
 	end
 	actor_ids = {}
 	print(#actor_ids)
@@ -126,6 +130,19 @@ end
 function save_ids(id)
 	print("save_ids")
 	table.insert(actor_ids_manager,id)
+	table.insert(actor_ids_position,vmath.vector3())
+	
+end
+
+function player_attention()
+	print("player_attention")
+	for i =#actor_ids_manager,1,-1 do
+		msg.post(actor_ids_manager[i],"msg_follow_player")
+	end
+end
+
+function chose_position()
+
 end
 
 
@@ -143,6 +160,7 @@ function update(self, dt)
 end
 
 local msg_player_need_help = hash("msg_player_need_help")
+local msg_player_attention= hash("msg_player_attention")
 local msg_vase_break = hash("msg_break_vase")
 local msg_enemy_death = hash("msg_enemy_death")
 local msg_pause_actors = hash("msg_pause_actors")
@@ -153,6 +171,8 @@ local msg_init_game = hash("msg_init_game")
 function on_message(self, message_id, message, sender)
 	if message_id == msg_send_actor_id then
 		save_ids(sender)
+	elseif message_id == msg_player_attention then
+		player_attention()
 	elseif message_id == msg_init_game then
 		start_game()
 	elseif message_id == msg_actor_die then

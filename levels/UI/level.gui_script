@@ -74,10 +74,15 @@ function make_new_character_pos(id)
 	gui.set_position(c,pos)
 	-- self.ids.id = c
 	ids[tostring(id)] = c
+
+	return c
 end
 
 function change_character_pos_col(id,pos,color)
 	local move = ids[tostring(id)]
+	if not move then
+		move = make_new_character_pos(id)
+	end
 	gui.set_position(move, position_to_map(pos))
 	gui.set_color(move, color)
 
@@ -85,7 +90,7 @@ function change_character_pos_col(id,pos,color)
 end
 
 function position_to_map(pos)
-	return root+pos/20
+	return root+pos/10
 end
 
 function delete_character_pos(id)

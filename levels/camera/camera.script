@@ -35,7 +35,7 @@ function on_message(self, message_id, message, sender)
 	elseif message_id == hash("set_position") then
 		-- print("set_position")
 		-- print(message.pos)
-		local pos = vmath.vector3(480, 320, 0)
+		local pos = vmath.vector3(512, 288, 0)
 		go.set_position(message.pos-pos,".")
 	end
 end
