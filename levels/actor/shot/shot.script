@@ -1,0 +1,69 @@
+go.property("color", vmath.vector4())
+go.property("dir", vmath.vector3())
+go.property("id",hash("test"))
+
+function init(self)
+	-- if self.col ~= vmath.vector4() then
+
+		sprite.set_constant("#sprite", "tint", self.color)
+	-- end
+	self.timer = 0
+	self.speed = 10--30
+
+	go.set_scale(vmath.vector3(1,1,1))
+	-- self.dir = vmath.vector3(1,0,0)
+
+	-- Add initialization code here
+	-- Learn more: https://defold.com/manuals/script/
+	-- Remove this function if not needed
+end
+
+function final(self)
+	-- Add finalization code here
+	-- Learn more: https://defold.com/manuals/script/
+	-- Remove this function if not needed
+end
+
+function update(self, dt)
+	local pos = go.get_position(".")
+	pos = pos + self.dir*self.speed
+	go.set_position(pos)
+	self.timer =self.timer+ dt
+	if self.timer >3 then
+		go.delete(".")
+	end
+	-- Add update code here
+	-- Learn more: https://defold.com/manuals/script/
+	-- Remove this function if not needed
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id ==  hash("collision_response") then -- <2>
+		if message.other_group == hash("actor") then
+
+			if message.other_id ~= self.id then
+				local vec = message.other_position-go.get_position()
+				go.delete(".")
+				msg.post(message.other_id, "msg_shot_damage",{vec = vec})
+			end
+		end
+	end
+end
+
+function on_input(self, action_id, action)
+	-- Add input-handling code here. The game object this script is attached to
+	-- must have acquired input focus:
+	--
+	--    msg.post(".", "acquire_input_focus")
+	--
+	-- All mapped input bindings will be received. Mouse and touch input will
+	-- be received regardless of where on the screen it happened.
+	-- Learn more: https://defold.com/manuals/input/
+	-- Remove this function if not needed
+end
+
+function on_reload(self)
+	-- Add reload-handling code here
+	-- Learn more: https://defold.com/manuals/hot-reload/
+	-- Remove this function if not needed
+end

@@ -1,0 +1,133 @@
+
+local player_id = nil
+
+function init(self)
+	self.id = go.get_parent()
+	self.dir = vmath.vector3(1,0,0)
+	self.mode ="search"
+	self.move =true
+	self.rotation = 0
+
+	self.spd= 2--8
+	self.time = 1
+	self.aim_vec = vmath.vector3(1,0,0)
+	self.aim_time = 0 
+	self.aim_cool_time = 0.8
+
+	msg.post(self.id,"msg_controler_init",{player = false})
+
+end
+
+function color_set()
+end
+
+function final(self)
+	-- Add finalization code here
+	-- Learn more: https://defold.com/manuals/script/
+	-- Remove this function if not needed
+end
+
+function set_aim_pos(self,vec)
+	self.aim_vec = vec
+end
+
+function update(self, dt)
+
+	msg.post(self.id, "rotation_msg", {vec = self.aim_vec})
+	
+
+	if self.mode == "search" then
+		self.time = self.time -dt
+		if self.time<0 then
+			self.time=1
+			self.dir =-self.dir
+			--self.aim_vec = - self.aim_vec
+		end
+	end
+
+	if self.move then
+		
+		msg.post(self.id, "move_msg", {vec = self.dir,spd = self.spd})
+	else
+
+	end
+
+	if self.mode ~= "search" then
+		self.aim_time = self.aim_time - dt
+		if self.aim_time <=0 then
+			msg.post(self.id,"shot_msg")
+			self.aim_time = self.aim_cool_time
+		end
+	else
+		self.aim_time = self.aim_cool_time
+	end
+
+	
+
+	if self.mode ~= "wait" then
+		self.mode = "search"
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id ==  hash("collision_response") then
+		if message.other_group == hash("actor") then
+			msg.post(message.other_id, "msg_get_view")
+		end
+	elseif message_id ==  hash("msg_view_return") then
+		if message.player then
+			get_player_pos(self,message.pos,message.size)
+		end
+	elseif message_id ==  hash("msg_get_damage") then
+		set_aim_pos(self,message.vec)
+	end
+
+end
+
+function get_player_pos(self,pos,size)
+	if self.mode == "search" then
+	end
+	local vec = pos-go.get_position(self.id)
+	local length = vmath.length(vec)
+	local dir = vmath.normalize(vec)
+	-- print(go.get(self.id,"size"))
+	self.aim_vec =pos
+
+	if length >size+128+64 then
+		self.dir = dir
+		self.mode ="chase"
+	else
+		self.dir = dir_change(dir,90)
+
+		self.mode = "wait"
+	end
+
+	print("get_player_pos")
+end
+
+function dir_change(dir,rad)
+	rad = math.atan2(dir.y,dir.x)+math.pi*(rad/180)
+	local ans_dir = dir
+	ans_dir.x = math.cos(rad)
+	ans_dir.y = math.sin(rad)
+
+	return ans_dir
+end
+
+function on_input(self, action_id, action)
+	-- Add input-handling code here. The game object this script is attached to
+	-- must have acquired input focus:
+	--
+	--    msg.post(".", "acquire_input_focus")
+	--
+	-- All mapped input bindings will be received. Mouse and touch input will
+	-- be received regardless of where on the screen it happened.
+	-- Learn more: https://defold.com/manuals/input/
+	-- Remove this function if not needed
+end
+
+function on_reload(self)
+	-- Add reload-handling code here
+	-- Learn more: https://defold.com/manuals/hot-reload/
+	-- Remove this function if not needed
+end

@@ -1,0 +1,482 @@
+local start_size = 128
+local shot_cost = 5
+local shot_damage = 8
+local dash_cost = 10
+local die_splash = 20
+local heal_limit = 12
+local splash_size_gain = 8
+local map_size = 256*5
+go.property("control_script", hash("test"))
+go.property("size", 128)
+
+function cost_to_scale(cost)
+	local a = (10*math.sqrt(cost))/128
+	return a
+end
+
+function init(self)
+	msg.post("/ui#level","msg_init_map_position")
+
+	self.player = false
+
+	self.no_action_time = 0
+	self.need_heal = false
+
+	self.move = false
+	self.spd =1000
+	self.dir =vmath.vector3()
+
+	self.aim = false
+	self.aim_pos = vmath.vector3()
+	self.angle_dir = new vmath.vector3()
+	self.damage = false
+
+	self.rotation = 0;
+
+	self.shot_rate = 0.1
+	self.shot_cool_time = 0;
+
+	self.dash = false
+	self.dash_ready =true
+	self.dash_consume = false
+	self.dash_spd = 50
+	self.dash_time =0
+	self.dash_cool_time = 0.5
+	self.dash_limit_time =0.1
+	self.dash_aim = vmath.vector3()
+
+
+	-- self.color = vmath.vector4(1, 0, 0, 1)
+	init_color_set(self)
+	sprite.set_constant("#body", "tint", self.color)
+	-- self.size = 128
+	size_change(self,0)
+	-- go.animate("#body", "tint", go.PLAYBACK_LOOP_PINGPONG, vmath.vector4(1, 0, 0, 0), go.EASING_LINEAR, 2)
+	-- self.now_pos = go.get_position()
+	-- self.aim_pos = vmath.vector3(0, 1, 0)
+
+	-- self.now_quat = vmath.quat_rotation_z(math.pi)
+
+end
+
+function init_color_set(self)
+	local col = vmath.vector4(math.random(),math.random(),math.random(),1)
+	self.color = col
+	print("color :")
+	print(col)
+
+end
+
+
+function die_motion(self)
+	-- splashes(5,self,die_splash,10,dir)
+	self.size = 1
+	local vec = get_aim_vector(self)
+
+	splashes(4,self,die_splash,die_splash,-vec)
+	print("actor die")
+	go.delete(".",true)
+
+end
+
+
+function color_change(self,col,size)
+	local time =0.5
+	size =size/splash_size_gain
+
+	local new_col = (self.color*(self.size)+col*size)/(self.size+size)
+	
+	sprite.set_constant("#body", "tint", new_col)
+	self.color = new_col
+
+	-- go.animate("#body", "tint",go.PLAYBACK_ONCE_FORWARD,new_col,go.EASING_OUTEXPO,time)
+
+end
+
+
+function size_change(self,num)
+	-- print("size_change"..num)
+	local time =0.5
+	self.size = self.size +num
+	local scale = go.get_scale()
+	local sc = cost_to_scale(self.size)
+
+		if self.size <heal_limit then
+			self.need_heal = true
+		else
+			self.need_heal = false
+			self.no_action_time = 0
+		end
+
+
+	if sc <= 0 or self.size <= 0 then
+		die_motion(self)
+		
+
+
+		return false
+	else
+		scale.x = sc--size_to_scale/128
+		scale.y = sc--size_to_scale/128
+
+		go.set_scale(scale)
+		-- go.animate(".","scale",go.PLAYBACK_ONCE_FORWARD,scale,go.EASING_OUTEXPO,time)
+		label.set_text("#label", self.size)
+		return true
+	end
+
+	-- self.need_heal = self.size<heal_limit and true or false
+
+	-- print("scale:"..scale)
+	-- print("size"..self.size)
+end
+
+--get info
+function get_splash(self,size,col)
+	color_change(self,col,size)
+	size_change(self,size)
+end
+
+function get_aim_vector(self)
+	local to = self.pos--go.get_position()
+	
+	local from = self.aim_pos
+
+	return vmath.normalize(from-to),to
+end
+
+function pos_out_of_body(self,vec)
+	local pos = self.pos--go.get_position()
+	local size = cost_to_scale(self.size)/1.2
+	pos.x = pos.x + vec.x*size*128
+	pos.y = pos.y + vec.y*size*128
+	return pos
+end
+
+
+--input_move
+
+function cancel_consume(self,cost)
+	local can = self.size > cost
+	if can then
+		self.need_heal = false
+		self.no_action_time = 0
+		
+	else
+		self.need_heal = true
+		print("no chance!!!!!!!!!!!")
+	end
+
+
+	return can
+end
+
+
+function shot_normal(self)
+	-- if self.player then
+	-- 	print("position")
+	-- 	print(go.get_position())
+	-- end
+	-- print(vmath.normalize(self.angle))
+	
+	if cancel_consume(self,shot_cost) then
+		if self.shot_cool_time ==0 then
+
+			local vec = get_aim_vector(self)
+			local pos = pos_out_of_body(self,vec)
+			local this_id = go.get_id()
+
+			print("-- when shot id --")
+			print(this_id)
+			local prop = {color = self.color,dir = vec,id = this_id}
+
+			factory.create("#shot_factory", pos, nil, prop)
+			self.shot_cool_time = self.shot_rate
+			size_change(self,-shot_cost)
+		end
+	end
+end
+
+function dash_move(self,dt)
+	if not self.dash_ready then
+		self.dash_time =self.dash_time-dt
+		-- if self.dash_time <= 0 then
+
+		-- if not self.dash_consume and self.dash_time <= self.dash_limit_time/2+self.dash_cool_time then
+		-- 	self.dash_consume =true
+		-- 	-- splashes(4,self,dash_cost/2,dash_cost,-self.dash_aim)
+		-- end
+
+		if self.dash_time <= self.dash_cool_time then
+			self.dash = false
+			if self.dash_time <= 0 then
+				self.dash_time =0
+				self.dash_ready = true
+				self.dash_consume =false
+			end
+		else
+			local pos = self.pos--go.get_position()
+			go.set_position(pos+self.dash_spd*self.dash_aim)
+		end
+	end
+end
+
+function dash_start(self)
+	if cancel_consume(self,dash_cost) then
+		if self.dash_ready then
+			local vec = get_aim_vector(self)
+			self.dash_aim = vec
+			self.dash_time = self.dash_limit_time+self.dash_cool_time
+			self.dash = true
+			self.dash_ready = false
+			size_change(self,-dash_cost)
+			-- vec= vmath.normalize(-vec)
+			splashes(4,self,dash_cost,dash_cost,-vec)
+
+		end
+	end
+
+end
+
+--damage
+--splashes
+
+function splashes(num,self,size,power,dir)
+	print("----- splashes "..num)
+	print(dir)
+	local n = math.rad(num)
+	local size_tbl = {}
+	local normal_amount = size/(num+1)
+	local random_amount = normal_amount
+
+	for i = 1,num do
+		local s =normal_amount
+		if i ~= num then
+			part = math.random(0,random_amount)
+			s= s+part
+
+			random_amount = random_amount-part
+		else
+			s =s+random_amount
+		end
+		table.insert(size_tbl,i,s)
+	end
+
+
+	for i = 1,#size_tbl do
+
+		local rnd_dir = math.atan2(dir.y,dir.x)+math.pi*(i-num/2)/(2*num)
+		-- print("rnd_dir:"..rnd_dir)
+		local dir_temp = vmath.vector3(1,1,0)
+		dir_temp.x = math.cos(rnd_dir)
+		dir_temp.y = math.sin(rnd_dir)
+		-- print("splash size"..size_tbl[i])
+
+		make_splash(self,size_tbl[i],power,dir_temp)
+	end
+
+	print(dir)
+
+end
+
+
+function make_splash(self,size,power,dir)
+	-- local to = go.get_position()
+	-- local from = self.aim_pos
+
+	local sz = 64
+	local pow = 20
+	local pos = pos_out_of_body(self,dir)
+
+	local prop = {size = size*splash_size_gain,power= power,color = self.color,dir = dir}
+	
+	factory.create("#splash_factory", pos, nil, prop)
+
+end
+
+function damage_move(damage,self,power,dir,time)
+
+	if not self.player then
+		local pos = self.pos + dir
+		msg.post(self.control_script, "msg_get_damage", {vec = pos})
+	end
+
+	splashes(3,self,damage,damage,-dir)
+	size_change(self,-damage)
+	-- make_splash(self,damage,damage,-dir)
+	local pos = go.get_position()
+	local root_sca = go.get_scale()
+	local sca = vmath.vector3(root_sca.x*1.1,root_sca.y*0.8,1)
+
+	self.damage = true
+	pos =pos+ dir*power
+	sprite.play_flipbook("#eye_black", "eye_batsu")
+	go.animate(".", "position", go.PLAYBACK_ONCE_FORWARD, pos, go.EASING_OUTCIRC,time,0,damage_end)
+	go.animate(".", "scale", go.PLAYBACK_ONCE_PINGPONG, sca, go.EASING_OUTCIRC,time,0)
+end
+
+function damage_end(self)
+	self.damage = false
+	sprite.play_flipbook("#eye_black", "eye_normal")
+
+end
+
+function move_dir_from_out(vec)
+end
+
+
+--default
+
+function final(self)
+	print("actor final")
+	msg.post("/ui#level","msg_end_map_position")
+
+end
+
+function collide_limit(self)
+	msg.post(self.control_script,"msg_collide_limit")
+end
+
+function update(self, dt)
+
+	self.pos = go.get_position()
+	if math.abs(self.pos.x) > map_size then
+		self.pos.x = map_size *(self.pos.x/math.abs(self.pos.x))
+		collide_limit(self)
+	end
+	if math.abs(self.pos.y) > map_size then
+		self.pos.y = map_size *(self.pos.y/math.abs(self.pos.y))
+		collide_limit(self)
+	end
+	msg.post("/ui#level","msg_map_position",{pos = self.pos,color =self.color})
+
+	if self.need_heal then
+		if self.player then
+			print("need heal")
+			print(self.no_action_time)
+			self.no_action_time = self.no_action_time +dt
+			if self.no_action_time > 1 then
+				size_change(self,0.5)
+				print(heal_limit.." :"..self.size)
+			end
+		else
+			die_motion(self)
+		end
+	end
+
+
+	if self.shot_cool_time >0 then
+		self.shot_cool_time = self.shot_cool_time -dt
+	else
+		self.shot_cool_time = 0
+	end
+
+	if self.rotation ~= 0 then
+
+	end
+
+	dash_move(self,dt)
+
+
+	if self.dash then
+
+	else
+		if self.aim then
+			local to = self.pos
+			local from = self.aim_pos
+			self.angle  = vmath.vector3(to.x - from.x,from.y - to.y,0)
+			local angle =  math.atan2(to.x - from.x, from.y - to.y)
+			local rot = vmath.quat_rotation_z(angle)
+
+			go.set_rotation(rot)
+		end
+
+		if self.move then
+			local pos = self.pos
+			self.dir = vmath.normalize(self.dir)
+			pos = pos + self.dir * self.spd
+			go.set_position(pos)
+			-- print(dt)
+		end
+	end
+
+	self.aim = false
+	self.move = false
+end
+
+
+local move_msg = hash("move_msg")
+local rotation_msg = hash("rotation_msg")
+local shot_msg = hash("shot_msg")
+local dash_msg = hash("dash_msg")
+local move_target = hash("move_target")
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("msg_controler_init") then
+		self.control_script = sender
+		self.player = message.player
+	elseif message_id == move_msg then
+		self.dir = message.vec
+		self.spd = message.spd
+		self.move =true
+		-- print("move_msg")
+	elseif message_id == rotation_msg then
+		local vec = message.vec
+		self.aim =true
+		self.aim_pos = vec
+		-- go.set_rotation(rotation, [id])
+	elseif message_id == shot_msg then
+		shot_normal(self)
+	elseif message_id == dash_msg then
+		dash_start(self)
+	elseif message_id == hash("msg_get_splash") then
+		if not self.damage then
+			get_splash(self,message.size,message.col)
+			-- size_change(self,message.size)
+		end
+	elseif message_id == hash("msg_shot_damage") then
+		if not self.damage then
+			damage_move(shot_damage,self,12,vmath.normalize(message.vec),0.2)
+		end
+	elseif message_id == hash("msg_get_view") then
+		msg.post(sender, "msg_view_return", {player = self.player,pos = go.get_position(),size =self.size})
+		-- msg.post(sender, "msg_view_return", {player = self.player,pos = self.pos,size =self.size})
+	elseif message_id ==  hash("collision_response") then -- <2>
+
+		if message.other_group == hash("actor") then
+			if not self.damage then
+				-- local vec = go.get_position()-message.other_position
+				local vec = self.pos-message.other_position
+				damage_move(10,self,128,vmath.normalize(vec),0.5)
+			end
+		elseif message.other_group == hash("splash") then
+
+		elseif message.other_group == hash("shot") then
+
+
+		end
+	end
+end
+
+function on_input(self, action_id, action)
+	-- Add input-handling code here. The game object this script is attached to
+	-- must have acquired input focus:
+	--
+	--    msg.post(".", "acquire_input_focus")
+	--
+	-- All mapped input bindings will be received. Mouse and touch input will
+	-- be received regardless of where on the screen it happened.
+	-- Learn more: https://defold.com/manuals/input/
+	-- Remove this function if not needed
+end
+
+function on_reload(self)
+	size_change(self,128)
+	-- go.cancel_animations("#body", "tint")
+	-- go.animate("#body", "tint", go.PLAYBACK_LOOP_PINGPONG, vmath.vector4(0, 0, 1, 1), go.EASING_LINEAR, 2)
+
+
+	-- Add reload-handling code here
+	-- Learn more: https://defold.com/manuals/hot-reload/
+	-- Remove this function if not needed
+end

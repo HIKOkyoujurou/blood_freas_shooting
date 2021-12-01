@@ -1,0 +1,85 @@
+local prefab_character = nil
+local ids = {}
+local id_numbers = 0
+local numbers ={}
+function init(self)
+	prefab_character = gui.get_node("actor_prefab")
+	self.ids = {}
+	self.id =nil
+	make_new_character_pos()
+end
+
+function final(self)
+	-- Add finalization code here
+	-- Learn more: https://defold.com/manuals/script/
+	-- Remove this function if not needed
+end
+
+function update(self, dt)
+	-- Add update code here
+	-- Learn more: https://defold.com/manuals/script/
+	-- Remove this function if not needed
+end
+local root = vmath.vector3()
+
+function make_new_character_pos(id)
+	local c = gui.clone(prefab_character)
+	local pos =gui.get_position(prefab_character)
+	root = pos
+	-- pos.x = pos.x+10
+	gui.set_position(c,pos)
+	-- self.ids.id = c
+	ids[tostring(id)] = c
+
+
+	-- print(ids[tostring(id))
+	-- table.insert(ids,tostring(id) = c)
+	-- self.id =nil
+end
+
+function change_character_pos_col(id,pos,color)
+	local move = ids[tostring(id)]
+	gui.set_position(move, root+pos/20)
+	gui.set_color(move, color)
+
+	-- print(table.concat(ids)," ")
+end
+
+function delete_character_pos(id)
+	local move = ids[tostring(id)]
+	gui.delete_node(move)
+	-- table.remove(ids,tostring(id))
+end
+
+local msg_map_position = hash("msg_map_position")
+local msg_init_map_position = hash("msg_init_map_position")
+local msg_end_map_position = hash("msg_end_map_position")
+function on_message(self, message_id, message, sender)
+	if message_id == msg_init_map_position then
+		make_new_character_pos(sender)
+	elseif message_id == msg_map_position then
+		change_character_pos_col(sender,message.pos,message.color)
+
+	elseif message_id == msg_end_map_position then
+		delete_character_pos(sender)
+
+	end
+end
+
+function on_input(self, action_id, action)
+	-- Add input-handling code here. The game object this script is attached to
+	-- must have acquired input focus:
+	--
+	--    msg.post(".", "acquire_input_focus")
+	--
+	-- All mapped input bindings will be received. Mouse and touch input will
+	-- be received regardless of where on the screen it happened.
+	-- Learn more: https://defold.com/manuals/input/
+	-- Remove this function if not needed
+end
+
+function on_reload(self)
+	-- Add reload-handling code here
+	-- Learn more: https://defold.com/manuals/hot-reload/
+	-- Remove this function if not needed
+end

@@ -1,0 +1,42 @@
+local map_size = 1280
+local now_level =0
+local death_count = 0
+local game_time = 0
+
+function init(self)
+	-- collectionfactory.create()
+	make_enemy()
+
+end
+
+function make_enemy()
+	local pos_x = math.random(-map_size+256, map_size-256)
+	local pos_y = math.random(-map_size+256, map_size-256)
+	local pos = vmath.vector3(pos_x,pos_y,0)
+
+	collectionfactory.create("#enemy_factory",pos)
+end
+
+function chenge_level()
+
+end
+
+function final(self)
+
+end
+
+function update(self, dt)
+	game_time =game_time+dt
+end
+
+function on_message(self, message_id, message, sender)
+
+end
+
+function on_input(self, action_id, action)
+
+end
+
+function on_reload(self)
+
+end
